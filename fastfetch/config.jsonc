@@ -1,0 +1,71 @@
+{
+    "logo": {
+        "type": "auto",
+        "source": "arch",
+        "width": 65,
+        "height": 35,
+        "padding": {
+            "top": 0,
+            "left": 0,
+            "right": 2
+        },
+        "color": {
+            "1": "light_blue",
+            "2": "blue",
+        }
+    },
+
+    "display": {
+        "separator": ": ",
+        "color": {
+            "keys": "blue",
+            "title": "light_blue"
+        },
+        "key": {
+            "width": 12,
+            "type": "string"
+        },
+        "bar": {
+            "width": 10,
+            "char.elapsed": "#",
+            "char.total": "-"
+        },
+        "percent": {
+            "type": 9,
+            "color": {
+                "green": "green",
+                "yellow": "light_yellow",
+                "red": "light_red"
+            }
+        }
+    },
+
+    "modules": [
+        "title",
+        "separator",
+        {
+            "type": "os",
+            "keyColor": "blue",
+            "format": "{name} {version}"
+        },
+        {
+            "type": "kernel",
+        },
+        {
+            "type": "memory",
+            "percent": {
+                "type": 3,
+                "green": 30,
+                "yellow": 70
+            }
+        },
+        "cpu",
+        "disk",
+        {
+            "type": "gpu",
+        },
+        {
+            "type": "brightness",
+        },
+    ]
+}
