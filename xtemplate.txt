@@ -1,0 +1,645 @@
+gtkmm3 configurator skeleton
+gtkmm3, configurator, program
+Gtk::Window; app window, title; app id
+<TEMPLATE_BODY>
+#include <gdkmm.h>
+#include <gtkmm.h>
+
+class $1 : public Gtk::Window {
+    public:
+        $1() {
+            menuitem_save_label.set_text("Сохранить");
+            menuitem_exit_label.set_text("Выход");
+            menuitem_delete_label.set_text("Удалить");
+            menuitem_help_label.set_text("Помощь");
+
+            setup_ui();
+            setup_gresources();
+            setup_menubuttons();
+            setup_top_bar();
+            setup_signals();
+
+            show_all_children();
+            setup_data();
+        }
+
+    protected:
+        void button_save_enable() {
+            button_save_icon.set(pixbuf_save_enabled);
+            menuitem_save_icon.set(pixbuf_save_enabled);
+            button_save.set_sensitive(true);
+            menuitem_save.set_sensitive(true);
+            unsaved = true;
+        }
+
+        void button_save_disable() {
+            button_save_icon.set(pixbuf_save_disabled);
+            menuitem_save_icon.set(pixbuf_save_disabled);
+            button_save.set_sensitive(false);
+            menuitem_save.set_sensitive(false);
+            unsaved = false;
+        }
+
+        bool on_exit_clicked() {
+            if (unsaved) {
+                Gtk::MessageDialog dialog("Сохранить изменения?", false,
+                                          Gtk::MESSAGE_QUESTION,
+                                          Gtk::BUTTONS_NONE);
+                dialog.add_button("Да", Gtk::RESPONSE_YES);
+                dialog.add_button("Нет", Gtk::RESPONSE_NO);
+                dialog.add_button("Отмена", Gtk::RESPONSE_CANCEL);
+
+                int res = dialog.run();
+                if (res == Gtk::RESPONSE_NO)
+                    return false;
+                if (res == Gtk::RESPONSE_YES) {
+                    on_save_clicked();
+                    if (unsaved)
+                        return true;
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        void on_save_clicked() {
+            std::string errors;
+            if (errors.empty()) {
+                button_save_disable();
+            } else {
+                Gtk::MessageDialog dialog("Не удалось сохранить файл базы "
+                                          "данных пользователей\n\n" +
+                                              errors,
+                                          false, Gtk::MESSAGE_ERROR);
+                dialog.run();
+            }
+            button_save_disable();
+        }
+
+    private:
+        void set_margin(Gtk::Widget &widget, int margin_horizontal,
+                        int margin_vertical) {
+            widget.set_margin_top(margin_vertical);
+            widget.set_margin_left(margin_horizontal);
+            widget.set_margin_right(margin_horizontal);
+            widget.set_margin_bottom(margin_vertical);
+        };
+
+        void setup_gresources() {
+            pixbuf_save_enabled = Gdk::Pixbuf::create_from_resource(
+                "/org/icons/save-enabled.png");
+            pixbuf_save_disabled = Gdk::Pixbuf::create_from_resource(
+                "/org/icons/save-disabled.png");
+            pixbuf_delete =
+                Gdk::Pixbuf::create_from_resource("/org/icons/delete.png");
+            pixbuf_help = Gdk::Pixbuf::create_from_resource(
+                "/org/icons/question-mark.png");
+        }
+
+        void setup_ui() {
+            set_title("Настройка алармов");
+            auto css = Gtk::CssProvider::create();
+            css->load_from_data(R"(
+                * {
+                    font-family: Sans;
+                    font-size: 14px;
+                }
+                #read-only {
+                    opacity: 0.75;
+                }
+                #white-background {
+                    background-image: none;
+                    background-color: white;
+                }
+            )");
+            auto screen = get_screen();
+            Gtk::StyleContext::add_provider_for_screen(
+                screen, css, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+            set_titlebar(header_bar);
+            add(vbox_main);
+
+            vbox_main.set_hexpand(true);
+            vbox_main.set_vexpand(true);
+            header_bar.set_show_close_button(true);
+            header_bar.set_decoration_layout("menu:minimize,maximize,close");
+        }
+
+        void setup_menubuttons() {
+            menubutton_file.set_label("Файл");
+            menubutton_file.set_name("button-without-border");
+            menubutton_file.set_relief(Gtk::RELIEF_NONE);
+            header_bar.pack_start(menubutton_file);
+            menu_file.append(menuitem_save);
+            menuitem_save.add(menuitem_save_box);
+            menuitem_save_box.pack_start(menuitem_save_icon, Gtk::PACK_SHRINK);
+            menuitem_save_box.pack_start(menuitem_save_label, Gtk::PACK_SHRINK);
+            menu_file.append(menuitem_exit);
+            menuitem_exit.add(menuitem_exit_box);
+            menuitem_exit_box.pack_start(menuitem_exit_label, Gtk::PACK_SHRINK);
+            menubutton_file.set_popup(menu_file);
+            menu_file.show_all();
+
+            menuitem_edit_icon = Gtk::Image(pixbuf_edit);
+            menubutton_edit.set_label("Правка");
+            menubutton_edit.set_name("button-without-border");
+            menubutton_edit.set_relief(Gtk::RELIEF_NONE);
+            header_bar.pack_start(menubutton_edit);
+            menu_edit.append(menuitem_delete);
+            menuitem_delete.add(menuitem_delete_box);
+            menuitem_delete_box.pack_start(menuitem_delete_icon,
+                                           Gtk::PACK_SHRINK);
+            menuitem_delete_box.pack_start(menuitem_delete_label,
+                                           Gtk::PACK_SHRINK);
+            menubutton_edit.set_popup(menu_edit);
+            menu_edit.show_all();
+
+            menubutton_service.set_label("Сервис");
+            menubutton_service.set_name("button-without-border");
+            menubutton_service.set_relief(Gtk::RELIEF_NONE);
+            header_bar.pack_start(menubutton_service);
+            menu_service.show_all();
+
+            menuitem_help_icon = Gtk::Image(pixbuf_help);
+            menubutton_help.set_label("Помощь");
+            menubutton_help.set_name("button-without-border");
+            menubutton_help.set_relief(Gtk::RELIEF_NONE);
+            header_bar.pack_start(menubutton_help);
+            menu_help.append(menuitem_help);
+            menuitem_help.add(menuitem_help_box);
+            menuitem_help_box.pack_start(menuitem_help_icon, Gtk::PACK_SHRINK);
+            menuitem_help_box.pack_start(menuitem_help_label, Gtk::PACK_SHRINK);
+            menubutton_help.set_popup(menu_help);
+            menu_help.show_all();
+        }
+
+        void setup_top_bar() {
+            vbox_main.pack_start(top_bar, Gtk::PACK_SHRINK);
+
+            button_save.set_tooltip_text("Сохранить (Ctrl+S)");
+            top_bar.pack_start(button_save, Gtk::PACK_SHRINK);
+            button_save.set_image(button_save_icon);
+            button_save.set_always_show_image(true);
+            button_save_disable();
+            top_bar.pack_start(top_bar_separator1, Gtk::PACK_SHRINK);
+
+            button_delete_icon = Gtk::Image(pixbuf_delete);
+            top_bar.pack_start(button_delete, Gtk::PACK_SHRINK);
+            button_delete.set_image(button_delete_icon);
+            button_delete.set_always_show_image(true);
+
+            set_margin(top_bar, 0, 5);
+            button_save.set_margin_left(5);
+        }
+
+        void setup_signals() {
+            signal_delete_event().connect([this](GdkEventAny *event) {
+                bool ret = on_exit_clicked();
+                return ret;
+            });
+
+            button_save.signal_clicked().connect(
+                [this]() { on_save_clicked(); });
+
+            menuitem_save.signal_activate().connect(
+                [this]() { on_save_clicked(); });
+            menuitem_exit.signal_activate().connect(
+                [this]() { on_exit_clicked(); });
+        }
+
+        void setup_data() {}
+
+        Gtk::Box vbox_main{Gtk::ORIENTATION_VERTICAL, 10};
+        Gtk::HeaderBar header_bar;
+        Gtk::Box top_bar{Gtk::ORIENTATION_HORIZONTAL, 10};
+        Gtk::Separator top_bar_separator1{Gtk::ORIENTATION_HORIZONTAL};
+        bool unsaved = false;
+
+        Gtk::MenuButton menubutton_file, menubutton_edit, menubutton_service,
+            menubutton_help;
+        Gtk::Menu menu_file, menu_edit, menu_service, menu_help;
+        Gtk::MenuItem menuitem_save, menuitem_delete, menuitem_exit,
+            menuitem_help;
+        Gtk::Label menuitem_save_label, menuitem_exit_label,
+            menuitem_delete_label, menuitem_help_label;
+        Gtk::Box menuitem_save_box{Gtk::ORIENTATION_HORIZONTAL, 5},
+            menuitem_delete_box{Gtk::ORIENTATION_HORIZONTAL, 5},
+            menuitem_exit_box{Gtk::ORIENTATION_HORIZONTAL, 5},
+            menuitem_help_box{Gtk::ORIENTATION_HORIZONTAL, 5};
+
+        Glib::RefPtr<Gdk::Pixbuf> pixbuf_save_enabled, pixbuf_save_disabled,
+            pixbuf_delete, pixbuf_edit, pixbuf_help;
+        Gtk::Button button_save, button_delete;
+        Gtk::Image menuitem_save_icon, menuitem_delete_icon, menuitem_edit_icon,
+            menuitem_help_icon, button_save_icon, button_delete_icon;
+
+        bool unsaved = false;
+};
+
+int main(int argc, char *argv[]) {
+    auto app = Gtk::Application::create("$2");
+    $1 window;
+    return app->run(window);
+}
+</TEMPLATE_BODY>
+
+tinyxml2 read-write
+tinyxml2, read-write, code
+const std::string&; filepath, std::string&; errors
+<TEMPLATE_BODY>
+// READ
+/*bool GetChildBool(tinyxml2::XMLElement *parent, const char *child_name) {
+    if (!parent)
+        return false;
+    tinyxml2::XMLElement *child = parent->FirstChildElement(child_name);
+    if (!child)
+        return false;
+    const char *text = child->GetText();
+    if (!text)
+        return false;
+    return text == std::string("true") || text == std::string("1");
+}
+int GetChildInt(tinyxml2::XMLElement *parent, const char *child_name) {
+    if (!parent)
+        return 0;
+    tinyxml2::XMLElement *child = parent->FirstChildElement(child_name);
+    if (!child)
+        return 0;
+    const char *text = child->GetText();
+    if (!text)
+        return 0;
+    return std::stoi(text);
+}
+Glib::ustring GetChildText(tinyxml2::XMLElement *parent,
+                           const char *child_name) {
+    if (!parent)
+        return "";
+    tinyxml2::XMLElement *child = parent->FirstChildElement(child_name);
+    if (!child)
+        return "";
+    const char *text = child->GetText();
+    if (!text)
+        return "";
+    return Glib::ustring(text);
+}*/
+int tinyxml2_read_write(std::string &$1, std::string &$2) {
+    // WRITE dir and perm check
+    std::filesystem::path config_p($1.c_str());
+    if (!std::filesystem::exists(config_p.parent_path())) {
+        std::error_code ec;
+        std::filesystem::create_directory(config_p.parent_path(), ec);
+        if (ec) {
+            $2 += "- " + ec.message() + "\n";
+            return ec.value();
+        }
+    }
+    errno = 0;
+    std::ofstream ofs($1);
+    int err = errno;
+    if (!ofs.is_open() || err != 0) {
+        $2 += std::string("- ") + strerror(err) + "\n";
+        return err;
+    }
+
+    // READ win1251 to utf8 option
+    /*errno = 0;
+    std::ifstream ifs($1, std::ios::binary);
+    int err = errno;
+    if (!ifs.is_open() || err != 0) {
+        $2 += std::string("- ") + strerror(err) + "\n";
+        return err;
+    }
+    std::vector<char> buffer((std::istreambuf_iterator<char>(ifs)),
+                             std::istreambuf_iterator<char>());
+    ifs.close();
+    std::string raw_data(buffer.data(), buffer.size());
+    std::string utf8_data;
+    if (g_utf8_validate(raw_data.c_str(), static_cast<gssize>(raw_data.size()),
+                        nullptr)) {
+        utf8_data = raw_data;
+    } else {
+        utf8_data = cp1251_to_utf8(raw_data);
+    }
+    tinyxml2::XMLDocument config;
+    tinyxml2::XMLError result =
+        config.Parse(utf8_data.c_str(), utf8_data.size());
+    if (result != tinyxml2::XML_SUCCESS) {
+        $2 += std::string("- ") +
+                  config.ErrorStr() + "\n";
+        return false;
+    }*/
+   
+    // READ
+    tinyxml2::XMLDocument config;
+    tinyxml2::XMLError result = config.LoadFile($1.c_str());
+    if (result != tinyxml2::XML_SUCCESS) {
+        $2 += std::string("- ") + config.ErrorStr() + "\n";
+        return result;
+    }
+
+    // READ
+    /*tinyxml2::XMLElement *root = config.FirstChildElement("Root");
+    for (tinyxml2::XMLElement *table = root->FirstChildElement("Table");
+        table != nullptr; table = table->NextSiblingElement("Table")) {
+        const char *name = table->FirstChildElement("Name")->GetText();
+    }*/
+
+    // WRITE
+    tinyxml2::XMLDocument config;
+    auto append_element = [&config](tinyxml2::XMLElement *parent,
+                                    const char *name) {
+        tinyxml2::XMLElement *node = config.NewElement(name);
+        parent->InsertEndChild(node);
+        return node;
+    };
+    auto delete_element = [&config](tinyxml2::XMLElement *parent,
+                                    const char *name) {
+        for (auto child = parent->FirstChildElement(name); child != nullptr;) {
+            auto delete_child = child;
+            child = child->NextSiblingElement(name);
+            parent->DeleteChild(delete_child);
+        }
+    };
+    auto append_val_element = [&config](tinyxml2::XMLElement *parent,
+                                        const char *name, const char *val) {
+        tinyxml2::XMLElement *node = config.NewElement(name);
+        node->SetText(val);
+        parent->InsertEndChild(node);
+        return node;
+    };
+
+    // WRITE
+    // tinxyml2::XMLElement *root = config.NewElement("Root");
+    // config.InsertFirstChild(root);
+    tinyxml2::XMLError save_res = config.SaveFile($1.c_str());
+    if (save_res != tinyxml2::XML_SUCCESS) {
+        $2 += std::string("- ") + config.ErrorStr() + "\n";
+        return save_res;
+    }
+    int ret = config.ErrorID();
+    if (ret != tinyxml2::XML_SUCCESS) {
+        $2 += std::string("- ") + config.ErrorStr() + "\n";
+        return ret;
+    }
+    return ret;
+}
+</TEMPLATE_BODY>
+
+glibkeyfile read-write
+glib, read-write, func
+const std::string&; filepath, std::string&; errors
+<TEMPLATE_BODY>
+int glibkeyfile_read_write(std::string &$1, std::string &$2) {
+    // WRITE dir check
+    std::filesystem::path config_p($1.c_str());
+    if (!std::filesystem::exists(config_p.parent_path())) {
+        std::error_code ec;
+        std::filesystem::create_directory(config_p.parent_path(), ec);
+        if (ec) {
+            $2 += std::string("- ") + ec.message() + "\n";
+            return ec.value();
+        }
+    }
+
+    // READ win1251 to utf8 option
+    /*errno = 0;
+    std::ifstreaem ifs($1, std::ios::binary);
+    int err = errno;
+    if (!ifs.is_open() || err != 0) {
+        $2 += std::string("- ") + strerror(err) + "\n";
+        return err;
+    }
+    std::vector<char> buffer((std::istreambuf_iterator<char>(ifs)),
+                             std::istreambuf_iterator<char>());
+    ifs.close();
+    std::string raw_data(buffer.data(), buffer.size());
+    std::string utf8_data;
+    if (g_utf8_validate(raw_data.c_str(), static_cast<gssize>(raw_data.size()),
+                        nullptr)) {
+        utf8_data = raw_data;
+    } else {
+        utf8_data = cp1251_to_utf8(raw_data);
+    }
+    Glib::KeyFile key_file;
+    try {
+        key_file.load_from_data(utf8_data);
+    } catch (const Glib::Error &e) {
+        $2 += "- " + e.what() + "\n";
+        return false;
+    }*/
+    
+    // READ
+    Glib::KeyFile key_file;
+    try {
+        key_file.load_from_file($1);
+    } catch (const Glib::KeyFileError &ex) {
+        $2 += "- " + ex.what() + "\n";
+        return ex.code();
+    }
+
+    // READ
+    try {
+        // std::string key_var = key_file.get_string("group_name", "key_name");
+    } catch (const Glib::FileError &ex) {
+        $2 += "- " + ex.what() + "\n";
+    }
+
+    // WRITE
+    Glib::KeyFile key_file;
+    try {
+        // key_file.set_integer("group_name", "key_name", key_val);
+        // key_file.set_string(...);
+        key_file.save_to_file($1);
+    } catch (const Glib::Error &ex) {
+        $2 += "- " +  ex.what() + "\n";
+        return ex.code();
+    }
+}
+</TEMPLATE_BODY>
+
+cp1251 to utf8
+decode, funcs
+
+<TEMPLATE_BODY>
+int cp1251_to_utf8(char *out, const char *in, int buflen) {
+    static const int table[128] = {
+        0x82D0,   0x83D0,   0x9A80E2, 0x93D1,   0x9E80E2, 0xA680E2, 0xA080E2,
+        0xA180E2, 0xAC82E2, 0xB080E2, 0x89D0,   0xB980E2, 0x8AD0,   0x8CD0,
+        0x8BD0,   0x8FD0,   0x92D1,   0x9880E2, 0x9980E2, 0x9C80E2, 0x9D80E2,
+        0xA280E2, 0x9380E2, 0x9480E2, 0,        0xA284E2, 0x99D1,   0xBA80E2,
+        0x9AD1,   0x9CD1,   0x9BD1,   0x9FD1,   0xA0C2,   0x8ED0,   0x9ED1,
+        0x88D0,   0xA4C2,   0x90D2,   0xA6C2,   0xA7C2,   0x81D0,   0xA9C2,
+        0x84D0,   0xABC2,   0xACC2,   0xADC2,   0xAEC2,   0x87D0,   0xB0C2,
+        0xB1C2,   0x86D0,   0x96D1,   0x91D2,   0xB5C2,   0xB6C2,   0xB7C2,
+        0x91D1,   0x9684E2, 0x94D1,   0xBBC2,   0x98D1,   0x85D0,   0x95D1,
+        0x97D1,   0x90D0,   0x91D0,   0x92D0,   0x93D0,   0x94D0,   0x95D0,
+        0x96D0,   0x97D0,   0x98D0,   0x99D0,   0x9AD0,   0x9BD0,   0x9CD0,
+        0x9DD0,   0x9ED0,   0x9FD0,   0xA0D0,   0xA1D0,   0xA2D0,   0xA3D0,
+        0xA4D0,   0xA5D0,   0xA6D0,   0xA7D0,   0xA8D0,   0xA9D0,   0xAAD0,
+        0xABD0,   0xACD0,   0xADD0,   0xAED0,   0xAFD0,   0xB0D0,   0xB1D0,
+        0xB2D0,   0xB3D0,   0xB4D0,   0xB5D0,   0xB6D0,   0xB7D0,   0xB8D0,
+        0xB9D0,   0xBAD0,   0xBBD0,   0xBCD0,   0xBDD0,   0xBED0,   0xBFD0,
+        0x80D1,   0x81D1,   0x82D1,   0x83D1,   0x84D1,   0x85D1,   0x86D1,
+        0x87D1,   0x88D1,   0x89D1,   0x8AD1,   0x8BD1,   0x8CD1,   0x8DD1,
+        0x8ED1,   0x8FD1};
+
+    char *pout = out;
+    for (; *in && ((out - pout) < buflen - 1);) {
+        if (*in & 0x80) {
+            int v = table[(int)(0x7f & *in++)];
+            if (!v)
+                continue;
+            *out++ = (char)v;
+            *out++ = (char)(v >> 8);
+            if (v >>= 16)
+                *out++ = (char)v;
+        } else {
+            *out++ = *in++;
+        }
+    }
+    *out = 0;
+    return (out - pout);
+}
+
+void cp1251_to_utf8(const std::string &s, std::string &out) {
+
+    out.resize(s.length() * 2);
+
+    int sz = cp1251_to_utf8(out.data(), s.c_str(), out.length());
+
+    out.resize(sz);
+}
+
+std::string cp1251_to_utf8(const std::string &s) {
+    std::string out;
+    cp1251_to_utf8(s, out);
+    return out;
+}
+</TEMPLATE_BODY>
+
+copy to dir
+fs, func
+const std::string&; filepath, const std::string&; dir path, std::string&; errors
+<TEMPLATE_BODY>
+bool copy_to_dir(const std::string &$1,
+                const std::string &$2,
+                std::string &$3) {
+    std::error_code ec;
+    std::filesystem::path dest(
+        $2 + "/" +
+        std::filesystem::path($1).filename().string());
+    if (!std::filesystem::exists($2)) {
+        std::filesystem::create_directories(dest, ec);
+        if (ec) {
+            errors += "- " + ec.message() + '\n';
+            return false;
+        }
+    }
+    std::filesystem::copy_file(
+        $1, dest, std::filesystem::copy_options::overwrite_existing,
+        ec);
+    if (ec) {
+        errors += "- " + ec.message() + '\n';
+        return false;
+    }
+    return true;
+}
+</TEMPLATE_BODY>
+
+gtkmm bottom-right notification
+gtkmm, method, code
+const Glib::ustring&; message, int; timeout
+<TEMPLATE_BODY>
+// class member
+std::list<Notification> notifications;
+struct Notification {
+        Gtk::Window *window;
+        Gtk::Revealer *revealer;
+        sigc::connection timeout_id;
+        bool valid;
+};
+void show_notification(const Glib::ustring &$1, int $2) {
+    while (notifications.size() >= 6) {
+        auto older = notifications.begin();
+        if (older == notifications.end() || !older->valid)
+            return;
+        older->valid = false;
+        if (older->timeout_id)
+            older->timeout_id.disconnect();
+        older->window->hide();
+        delete older->window;
+        notifications.erase(older);
+        stack_notifications();
+    }
+    Gtk::Window *notif = new Gtk::Window(Gtk::WINDOW_POPUP);
+    notif->set_transient_for(*this);
+    notif->set_type_hint(Gdk::WINDOW_TYPE_HINT_NOTIFICATION);
+    notif->set_skip_taskbar_hint(true);
+    notif->set_decorated(false);
+    notif->set_opacity(0.0);
+    Gtk::Revealer *revealer = Gtk::make_managed<Gtk::Revealer>();
+    revealer->set_reveal_child(false);
+    revealer->set_transition_type(
+        Gtk::REVEALER_TRANSITION_TYPE_SLIDE_UP);
+    revealer->set_transition_duration(250);
+    Gtk::Frame *frame = Gtk::make_managed<Gtk::Frame>();
+    frame->set_shadow_type(Gtk::SHADOW_ETCHED_IN);
+    Gtk::Label *label = Gtk::make_managed<Gtk::Label>($1);
+    label->set_line_wrap(true);
+    label->set_xalign(0.0);
+    label->set_margin_start(12);
+    label->set_margin_end(12);
+    label->set_margin_top(10);
+    label->set_margin_bottom(10);
+    frame->add(*label);
+    revealer->add(*frame);
+    notif->add(*revealer);
+    notif->show_all();
+    notif->set_default_size(350, 60);
+    auto screen = this->get_screen();
+    Gdk::Rectangle rect;
+    screen->get_monitor_geometry(screen->get_primary_monitor(), rect);
+    notif->move(rect.get_x() + rect.get_width() - 350 - 20,
+                rect.get_y() + rect.get_height() - 60 - 80);
+
+    auto it = notifications.emplace(
+        notifications.end(),
+        Notification{notif, revealer, sigc::connection{}, true});
+    stack_notifications();
+    revealer->set_reveal_child(true);
+    it->timeout_id = Glib::signal_timeout().connect_seconds(
+        [this, it]() {
+            Glib::signal_timeout().connect_seconds(
+                [this, it]() {
+                    if (it == notifications.end() || !it->valid)
+                        return false;
+                    it->valid = false;
+                    if (it->timeout_id)
+                        it->timeout_id.disconnect();
+                    it->window->hide();
+                    delete it->window;
+                    notifications.erase(it);
+                    stack_notifications();
+                    return false;
+                },
+                1);
+            return false;
+        },
+        $2);
+}
+void stack_notifications() {
+    if (notifications.empty())
+        return;
+    auto screen = notifications.front().window->get_screen();
+    Gdk::Rectangle rect;
+    screen->get_monitor_geometry(screen->get_primary_monitor(), rect);
+    int y = rect.get_height() - 60 - 80;
+    size_t i = 0;
+    for (auto &notif : notifications) {
+        notif.window->move(rect.get_x() + rect.get_width() - 350 - 20,
+                            y - (i++ * (60 + 30)));
+    }
+}
+</TEMPLATE_BODY>
+
