@@ -1,0 +1,10 @@
+xterm*background: black
+xterm*foreground: white
+xterm*faceName: "MesloLGSNerdFont-Regular"
+xterm*faceSize: 18
+term*keepClipboard: true
+xterm*selectToClipboard: true
+xterm*backarrowKey: false
+xterm*vt100.Translations: #override \
+    Ctrl Shift <Key>C: copy-selection(CLIPBOARD) \n\
+    Ctrl Shift <Key>V: insert-selection(CLIPBOARD)
