@@ -1,0 +1,15 @@
+[
+  {"key": "space q", "command": "workbench.action.revertAndCloseEditor", "when": "editorTextFocus"},
+  {"key": "space e", "command": "runCommands", "args": {"commands": ["workbench.action.files.save", "workbench.action.closeWindow"]}, "when": "editorTextFocus"},
+  {"key": "space s", "command": "workbench.action.files.save", "when": "editorTextFocus"},
+  {"key": "space v", "command": "editor.action.expandLineSelection", "when": "editorTextFocus && editorHasSelection"},
+  {"key": "space t", "command": "workbench.action.terminal.toggleTerminal", "when": "editorTextFocus"},
+  {"key": "space r", "command": "editor.action.replaceInSelection", "when": "editorTextFocus && editorHasSelection"},
+  {"key": "space r", "command": "editor.action.startFindReplaceAction", "when": "editorTextFocus"},
+  {"key": "space b", "command": "cursorLineStart", "when": "editorTextFocus"},
+  {"key": "space a", "command": "cursorLineEnd", "when": "editorTextFocus"},
+  {"key": "space l", "command": "editor.action.expandLineSelection", "when": "editorTextFocus"},
+  {"key": "space d", "command": "editor.action.deleteLines", "when": "editorTextFocus"},
+  {"key": "space c", "command": "runCommands", "args": {"commands": ["editor.action.expandLineSelection", "editor.action.clipboardCopyAction"]}, "when": "editorTextFocus"},
+  {"key": "space g", "command": "editor.action.expandLineSelection", "when": "editorTextFocus"}
+]
