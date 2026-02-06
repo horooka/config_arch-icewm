@@ -1,0 +1,1 @@
+gen.nvim write full response, new_tokens_max, history and etc
